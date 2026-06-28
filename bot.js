@@ -15,7 +15,7 @@ const client = new Client({
 
 const commands = [
     new SlashCommandBuilder().setName('register').setDescription('Register your account.'),
-    new SlashCommandBuilder().setName('forgotcode').setDescription('Reset your code.'),
+    new SlashCommandBuilder().setName('forgotcode').setDescription('Reset your password.'),
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
@@ -30,6 +30,7 @@ const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
+    // REGISTER COMMAND
     if (interaction.commandName === 'register') {
         const discordUser = interaction.user.username;
         const revoKey = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -56,16 +57,25 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 
+    // FORGOTCODE COMMAND
     if (interaction.commandName === 'forgotcode') {
-        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const { error } = await supabase.from('users').update({ access_code: newCode }).eq('discord_id', interaction.user.id);
+        const discordUser = interaction.user.username;
+        const newRevoKey = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        if (error) await interaction.reply(`Error: ${error.message}`);
-        else {
+        const { error } = await supabase
+            .from('whitelist')
+            .update({ passkey: newRevoKey })
+            .eq('username', discordUser);
+
+        if (error) {
+            await interaction.reply(`Database Error: ${error.message}`);
+        } else {
             try {
-                await interaction.user.send(`Your new access code is: **${newCode}**`);
-                await interaction.reply({ content: 'I have sent your new code via DM!', ephemeral: true });
-            } catch (err) { await interaction.reply('I could not DM you. Please check your privacy settings!'); }
+                await interaction.user.send(`Your new password is: **${newRevoKey}**`);
+                await interaction.reply({ content: 'I have sent your new password via DM!', ephemeral: true });
+            } catch (err) {
+                await interaction.reply('I could not DM you. Please check your privacy settings!');
+            }
         }
     }
 });
