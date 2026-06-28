@@ -43,21 +43,23 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
         if (interaction.commandName === 'register') {
-            // Use .upsert() instead of .insert() to handle existing users gracefully
-            const { error: userError } = await supabase
-                .from('users')
-                .upsert([{ discord_id: interaction.user.id }], { onConflict: 'discord_id' });
-            
-            // Now add to the whitelist
+            // Generate REVO- format
+            const randomDigits = Math.floor(100000 + Math.random() * 900000);
+            const revoId = `REVO-${randomDigits}`;
+
+            // Upsert into whitelist using existing 'username' column
             const { error: whitelistError } = await supabase
                 .from('whitelist')
-                .upsert([{ discord_id: interaction.user.id }], { onConflict: 'discord_id' });
-            
-            if (userError || whitelistError) {
-                console.error('Error:', userError || whitelistError);
-                await interaction.reply('There was an error updating your registration.');
+                .upsert(
+                    { discord_id: interaction.user.id, username: revoId }, 
+                    { onConflict: 'discord_id' }
+                );
+
+            if (whitelistError) {
+                console.error('Whitelist Error:', whitelistError);
+                await interaction.reply(`Whitelist Error: ${whitelistError.message}`);
             } else {
-                await interaction.reply('Success! You are now registered and whitelisted.');
+                await interaction.reply(`Success! You are whitelisted as: **${revoId}**`);
             }
         }
 
