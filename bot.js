@@ -2,44 +2,63 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require
 const { createClient } = require('@supabase/supabase-js');
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const CLIENT_ID = "1520835760713105518"; // Your Client ID
+const CLIENT_ID = "1520835760713105518"; 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildMessages, 
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages 
+    ] 
+});
 
-// 1. Define the Command
+// 1. Command Registration
 const commands = [
     new SlashCommandBuilder().setName('register').setDescription('Register your Discord account!'),
+    new SlashCommandBuilder().setName('forgotcode').setDescription('Generate a new access code and get it via DM.'),
 ].map(command => command.toJSON());
 
-// 2. Register the Command with Discord
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 (async () => {
     try {
         await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-        console.log('Successfully registered /register command!');
+        console.log('Successfully registered commands!');
     } catch (error) {
         console.error(error);
     }
 })();
 
-// 3. Handle the Logic
+// 2. Interaction Logic
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === 'register') {
-        const userId = interaction.user.id;
-        
-        // Add to Supabase
-        const { error } = await supabase.from('users').insert([{ discord_id: userId }]);
+        const { error } = await supabase.from('users').insert([{ discord_id: interaction.user.id }]);
+        await interaction.reply(error ? 'You are already registered or there was an error!' : 'Successfully registered!');
+    }
+
+    if (interaction.commandName === 'forgotcode') {
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        const { error } = await supabase
+            .from('users')
+            .update({ access_code: newCode })
+            .eq('discord_id', interaction.user.id);
 
         if (error) {
-            await interaction.reply('You are already registered or there was an error!');
-        } else {
-            await interaction.reply('Successfully registered!');
+            return interaction.reply('Error updating your code. Make sure you are registered first!');
+        }
+
+        try {
+            await interaction.user.send(`Your new access code is: **${newCode}**`);
+            await interaction.reply({ content: 'I have sent your new code via DM!', ephemeral: true });
+        } catch (err) {
+            await interaction.reply('I could not DM you. Please check your privacy settings!');
         }
     }
 });
