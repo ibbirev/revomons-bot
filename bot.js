@@ -14,8 +14,8 @@ const client = new Client({
 });
 
 const commands = [
-    new SlashCommandBuilder().setName('register').setDescription('Register your Discord account!'),
-    new SlashCommandBuilder().setName('forgotcode').setDescription('Generate a new access code.'),
+    new SlashCommandBuilder().setName('register').setDescription('Register your account.'),
+    new SlashCommandBuilder().setName('forgotcode').setDescription('Reset your code.'),
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
@@ -32,27 +32,24 @@ client.on('interactionCreate', async (interaction) => {
 
     if (interaction.commandName === 'register') {
         const revoId = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
-        
-        // We now include 'passkey' to satisfy your table's requirement
+        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Saving to 'whitelist' table
         const { error } = await supabase.from('whitelist').insert([{ 
             username: revoId, 
-            passkey: revoId 
+            passkey: accessCode 
         }]);
         
-        if (error) await interaction.reply(`Error: ${error.message}`);
-        else await interaction.reply(`Success! You are whitelisted as: **${revoId}**`);
-    }
-
-    if (interaction.commandName === 'forgotcode') {
-        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const { error } = await supabase.from('users').update({ access_code: newCode }).eq('discord_id', interaction.user.id);
-
-        if (error) await interaction.reply(`Error: ${error.message}`);
-        else {
+        if (error) {
+            await interaction.reply(`Error: ${error.message}`);
+        } else {
             try {
-                await interaction.user.send(`Your new code is: **${newCode}**`);
-                await interaction.reply({ content: 'Sent via DM!', ephemeral: true });
-            } catch (err) { await interaction.reply('Check your DM settings!'); }
+                // DM the user their credentials
+                await interaction.user.send(`**Registration Successful!**\n\nYour Login Details:\nUsername: \`${revoId}\`\nAccess Code: \`${accessCode}\``);
+                await interaction.reply({ content: 'I have sent your login details to your DMs!', ephemeral: true });
+            } catch (err) {
+                await interaction.reply('I successfully registered you, but I could not send your DM! Please check your privacy settings.');
+            }
         }
     }
 });
