@@ -31,25 +31,41 @@ client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
     if (interaction.commandName === 'register') {
-        const revoId = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
-        const accessCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const discordUser = interaction.user.username;
+        const revoKey = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        // Saving to 'whitelist' table
         const { error } = await supabase.from('whitelist').insert([{ 
-            username: revoId, 
-            passkey: accessCode 
+            username: discordUser, 
+            passkey: revoKey 
         }]);
         
         if (error) {
             await interaction.reply(`Error: ${error.message}`);
         } else {
             try {
-                // DM the user their credentials
-                await interaction.user.send(`**Registration Successful!**\n\nYour Login Details:\nUsername: \`${revoId}\`\nAccess Code: \`${accessCode}\``);
-                await interaction.reply({ content: 'I have sent your login details to your DMs!', ephemeral: true });
+                await interaction.user.send(
+                    `**Registration Successful!**\n\n` +
+                    `You can now log into the site using these credentials:\n\n` +
+                    `Username: \`${discordUser}\`\n` +
+                    `Password: \`${revoKey}\``
+                );
+                await interaction.reply({ content: 'I have sent your login credentials to your DMs!', ephemeral: true });
             } catch (err) {
-                await interaction.reply('I successfully registered you, but I could not send your DM! Please check your privacy settings.');
+                await interaction.reply('I registered you, but I could not send the DM. Please check your privacy settings!');
             }
+        }
+    }
+
+    if (interaction.commandName === 'forgotcode') {
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const { error } = await supabase.from('users').update({ access_code: newCode }).eq('discord_id', interaction.user.id);
+
+        if (error) await interaction.reply(`Error: ${error.message}`);
+        else {
+            try {
+                await interaction.user.send(`Your new access code is: **${newCode}**`);
+                await interaction.reply({ content: 'I have sent your new code via DM!', ephemeral: true });
+            } catch (err) { await interaction.reply('I could not DM you. Please check your privacy settings!'); }
         }
     }
 });
