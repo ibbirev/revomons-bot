@@ -2,7 +2,8 @@ const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require
 const { createClient } = require('@supabase/supabase-js');
 
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const CLIENT_ID = "1520835760713105518"; 
+const CLIENT_ID = "1520835760713105518";
+const GUILD_ID = "1517389857629147197";
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
@@ -16,7 +17,6 @@ const client = new Client({
     ] 
 });
 
-// 1. Command Registration
 const commands = [
     new SlashCommandBuilder().setName('register').setDescription('Register your Discord account!'),
     new SlashCommandBuilder().setName('forgotcode').setDescription('Generate a new access code and get it via DM.'),
@@ -26,14 +26,14 @@ const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 
 (async () => {
     try {
-        await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-        console.log('Successfully registered commands!');
+        // This forces the commands to appear in your specific server instantly
+        await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+        console.log('Successfully registered commands to your server!');
     } catch (error) {
         console.error(error);
     }
 })();
 
-// 2. Interaction Logic
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
