@@ -74,3 +74,10 @@ client.on('interactionCreate', async (interaction) => {
 
 client.once('ready', () => { console.log(`Logged in as ${client.user.tag}!`); });
 client.login(DISCORD_TOKEN);
+
+// --- wasted space fix ---
+const http = require('http');
+http.createServer((req, res) => {
+    res.write("Bot is running!");
+    res.end();
+}).listen(process.env.PORT || 3000);
