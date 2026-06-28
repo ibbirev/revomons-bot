@@ -43,13 +43,21 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
         if (interaction.commandName === 'register') {
-            // Registering to both tables at once
-            const { error: userError } = await supabase.from('users').insert([{ discord_id: interaction.user.id }]);
-            const { error: whitelistError } = await supabase.from('whitelist').insert([{ discord_id: interaction.user.id }]);
+            // 1. Attempt to add to 'users' table
+            const { error: userError } = await supabase
+                .from('users')
+                .insert([{ discord_id: interaction.user.id }]);
             
-            if (userError || whitelistError) {
-                console.error('DB Error:', { userError, whitelistError });
-                await interaction.reply('Error: You might already be registered!');
+            // 2. Attempt to add to 'whitelist' table
+            const { error: whitelistError } = await supabase
+                .from('whitelist')
+                .insert([{ discord_id: interaction.user.id }]);
+            
+            // 3. Detailed error reporting
+            if (userError) {
+                await interaction.reply(`User Table Error: ${userError.message}`);
+            } else if (whitelistError) {
+                await interaction.reply(`Whitelist Table Error: ${whitelistError.message}`);
             } else {
                 await interaction.reply('Successfully registered and added to the whitelist!');
             }
