@@ -32,7 +32,12 @@ client.on('interactionCreate', async (interaction) => {
 
     if (interaction.commandName === 'register') {
         const revoId = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
-        const { error } = await supabase.from('whitelist').insert([{ username: revoId }]);
+        
+        // We now include 'passkey' to satisfy your table's requirement
+        const { error } = await supabase.from('whitelist').insert([{ 
+            username: revoId, 
+            passkey: revoId 
+        }]);
         
         if (error) await interaction.reply(`Error: ${error.message}`);
         else await interaction.reply(`Success! You are whitelisted as: **${revoId}**`);
