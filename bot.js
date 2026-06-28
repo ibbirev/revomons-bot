@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits, SlashCommandBuilder, Routes } = require('disc
 const { createClient } = require('@supabase/supabase-js');
 
 // ⚙️ CONFIGURATION KEYS
-proccess.env.DISCORD_TOKEN
+process.env.DISCORD_TOKEN
 const CLIENT_ID = "1520835760713105518"; 
 process.env.SUPABASE_URL
 process.env.SUPABASE_KEY 
