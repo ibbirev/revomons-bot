@@ -41,7 +41,12 @@ client.on('interactionCreate', async (interaction) => {
         }]);
         
         if (error) {
-            await interaction.reply(`Error: ${error.message}`);
+            // Intercepts the duplicate key error shown in image_4f39a7.png
+            if (error.code === '23505') {
+                await interaction.reply({ content: 'You have already registered or there is an error!', ephemeral: true });
+            } else {
+                await interaction.reply(`Error: ${error.message}`);
+            }
         } else {
             try {
                 await interaction.user.send(
