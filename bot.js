@@ -43,23 +43,21 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
         if (interaction.commandName === 'register') {
-            // 1. Attempt to add to 'users' table
+            // Use .upsert() instead of .insert() to handle existing users gracefully
             const { error: userError } = await supabase
                 .from('users')
-                .insert([{ discord_id: interaction.user.id }]);
+                .upsert([{ discord_id: interaction.user.id }], { onConflict: 'discord_id' });
             
-            // 2. Attempt to add to 'whitelist' table
+            // Now add to the whitelist
             const { error: whitelistError } = await supabase
                 .from('whitelist')
-                .insert([{ discord_id: interaction.user.id }]);
+                .upsert([{ discord_id: interaction.user.id }], { onConflict: 'discord_id' });
             
-            // 3. Detailed error reporting
-            if (userError) {
-                await interaction.reply(`User Table Error: ${userError.message}`);
-            } else if (whitelistError) {
-                await interaction.reply(`Whitelist Table Error: ${whitelistError.message}`);
+            if (userError || whitelistError) {
+                console.error('Error:', userError || whitelistError);
+                await interaction.reply('There was an error updating your registration.');
             } else {
-                await interaction.reply('Successfully registered and added to the whitelist!');
+                await interaction.reply('Success! You are now registered and whitelisted.');
             }
         }
 
