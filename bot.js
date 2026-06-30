@@ -80,14 +80,14 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 
-    // SETVALUE COMMAND
+    // SETVALUE COMMAND (Updated with onConflict fix)
     if (interaction.commandName === 'setvalue') {
         const name = interaction.options.getString('name');
         const newValue = interaction.options.getInteger('value');
 
         const { error } = await supabase
             .from('items')
-            .upsert({ name: name, value: newValue });
+            .upsert({ name: name, value: newValue }, { onConflict: 'name' });
 
         if (error) {
             await interaction.reply(`Database Error: ${error.message}`);
