@@ -16,6 +16,11 @@ const client = new Client({
 const commands = [
     new SlashCommandBuilder().setName('register').setDescription('Register your account.'),
     new SlashCommandBuilder().setName('forgotcode').setDescription('Reset your password.'),
+    new SlashCommandBuilder()
+        .setName('setvalue')
+        .setDescription('Update item value')
+        .addStringOption(option => option.setName('name').setDescription('Item name').setRequired(true))
+        .addIntegerOption(option => option.setName('value').setDescription('New value').setRequired(true))
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
@@ -23,8 +28,8 @@ const rest = new REST({ version: '10' }).setToken(DISCORD_TOKEN);
 (async () => {
     try {
         await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
-        console.log('Commands registered!');
-    } catch (error) { console.error(error); }
+        console.log('Commands registered successfully!');
+    } catch (error) { console.error('Command registration error:', error); }
 })();
 
 client.on('interactionCreate', async (interaction) => {
@@ -41,23 +46,17 @@ client.on('interactionCreate', async (interaction) => {
         }]);
         
         if (error) {
-            // Intercepts the duplicate key error shown in image_4f39a7.png
             if (error.code === '23505') {
-                await interaction.reply({ content: 'You have already registered or there is an error!', ephemeral: true });
+                await interaction.reply({ content: 'You have already registered!', ephemeral: true });
             } else {
                 await interaction.reply(`Error: ${error.message}`);
             }
         } else {
             try {
-                await interaction.user.send(
-                    `**Registration Successful!**\n\n` +
-                    `You can now log into the site using these credentials:\n\n` +
-                    `Username: \`${discordUser}\`\n` +
-                    `Password: \`${revoKey}\``
-                );
-                await interaction.reply({ content: 'I have sent your login credentials to your DMs!', ephemeral: true });
+                await interaction.user.send(`**Registration Successful!**\nUsername: \`${discordUser}\`\nPassword: \`${revoKey}\``);
+                await interaction.reply({ content: 'I have sent your credentials to your DMs!', ephemeral: true });
             } catch (err) {
-                await interaction.reply('I registered you, but I could not send the DM. Please check your privacy settings!');
+                await interaction.reply('I registered you, but could not DM you. Please check your privacy settings!');
             }
         }
     }
@@ -67,10 +66,7 @@ client.on('interactionCreate', async (interaction) => {
         const discordUser = interaction.user.username;
         const newRevoKey = `REVO-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        const { error } = await supabase
-            .from('whitelist')
-            .update({ passkey: newRevoKey })
-            .eq('username', discordUser);
+        const { error } = await supabase.from('whitelist').update({ passkey: newRevoKey }).eq('username', discordUser);
 
         if (error) {
             await interaction.reply(`Database Error: ${error.message}`);
@@ -81,6 +77,22 @@ client.on('interactionCreate', async (interaction) => {
             } catch (err) {
                 await interaction.reply('I could not DM you. Please check your privacy settings!');
             }
+        }
+    }
+
+    // SETVALUE COMMAND
+    if (interaction.commandName === 'setvalue') {
+        const name = interaction.options.getString('name');
+        const newValue = interaction.options.getInteger('value');
+
+        const { error } = await supabase
+            .from('items')
+            .upsert({ name: name, value: newValue });
+
+        if (error) {
+            await interaction.reply(`Database Error: ${error.message}`);
+        } else {
+            await interaction.reply(`Successfully updated **${name}** to **${newValue}** Robux!`);
         }
     }
 });
